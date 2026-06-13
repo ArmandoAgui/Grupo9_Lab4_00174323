@@ -83,11 +83,12 @@ public class FinanzasService {
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
         LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(LocalTime.MAX) : null;
 
-        Page<Movimiento> movimientos = movimientoRepository.findByUsuarioAndFechaBetween(
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fecha"));
+        Page<Movimiento> movimientos = listarMovimientosFiltrados(
                 usuario.getId(),
                 desdeDateTime,
                 hastaDateTime,
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fecha"))
+                pageable
         );
 
         return new Pagination<>(
@@ -99,6 +100,25 @@ public class FinanzasService {
                         movimientos.getTotalElements()
                 )
         );
+    }
+
+    private Page<Movimiento> listarMovimientosFiltrados(
+            Integer usuarioId,
+            LocalDateTime desde,
+            LocalDateTime hasta,
+            PageRequest pageable
+    ) {
+        if (desde != null && hasta != null) {
+            return movimientoRepository.findByCuentaUsuarioIdAndFechaBetween(usuarioId, desde, hasta, pageable);
+        }
+        if (desde != null) {
+            return movimientoRepository.findByCuentaUsuarioIdAndFechaGreaterThanEqual(usuarioId, desde, pageable);
+        }
+        if (hasta != null) {
+            return movimientoRepository.findByCuentaUsuarioIdAndFechaLessThanEqual(usuarioId, hasta, pageable);
+        }
+
+        return movimientoRepository.findByCuentaUsuarioId(usuarioId, pageable);
     }
 
     @Transactional
